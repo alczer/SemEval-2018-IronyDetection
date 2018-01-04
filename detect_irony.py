@@ -1,13 +1,15 @@
+# coding: utf-8
+
 #usr/bin/python3
 #
 #
 #
 #install:
-#keras,nltk
+#keras,nltk, nltk.download('wordnet')
 
+import preprocessing as pre
 import pandas as ps
 import numpy as np
-from keras.preprocessing import sequence
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 from keras.layers import Embedding
@@ -16,9 +18,10 @@ from nltk.tokenize import TweetTokenizer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk import tokenize
 
+
 #parameters
 
-max_features = 5000
+max_features = 10000
 maxlen = 200
 batch_size = 32
 embedding_dims = 50
@@ -31,38 +34,7 @@ def load_and_split_data(filename):
     data = ps.read_csv(filename, sep="\t")
     return np.split(data, [int(.8*len(data))])
 
-def index_corpus_words(data_train):
-    tok = TweetTokenizer()
-    frequency = {}
-    vocabulary = {}
-    word_index = 1
-    for row in data_train['Tweet text'].values:
-        for word in tok.tokenize(row.lower()):
-            if word not in frequency.keys():
-                frequency[word]=1
-            else:
-                frequency[word]+=1
-
-    for word in frequency.keys():
-        if frequency[word] > 1:
-            vocabulary[word] = word_index
-            word_index += 1
-    vocabulary["<unknown>"] = word_index
-    return vocabulary
-
-def map_words_and_add_padding(vocabulary, corpus):
-    new_corpus = []
-    for row in corpus:
-        new_row = []
-        for word in row:
-            if word in vocabulary.keys():
-                new_row.append(vocabulary[word])
-            else:
-                new_row.append(vocabulary["<unknown>"])
-        new_corpus.append(new_row)
-    return sequence.pad_sequences(new_corpus, maxlen=maxlen)
-
-def build_model(data_train_corpus,data_train_labels):
+def build_model(data_train_corpus, data_train_labels):
     model = Sequential()
     model.add(Embedding(max_features,
                     embedding_dims,
@@ -87,7 +59,7 @@ def build_model(data_train_corpus,data_train_labels):
         epochs=epochs)
     return model
 
-def evaluate(model,data_test_corpus,data_test_labels):
+def evaluate(model, data_test_corpus, data_test_labels):
     results = model.predict(data_test_corpus)
     results_binary = []
     for result in results:
@@ -111,13 +83,12 @@ def evaluate(model,data_test_corpus,data_test_labels):
 
 if __name__ == "__main__":
     data_train, data_test = load_and_split_data('data')
-    vocabulary = index_corpus_words(data_train)
+    vocabulary = pre.index_corpus_words(data_train)
     data_train_labels = np.array(data_train['Label'].values)
     data_test_labels = np.array(data_test['Label'].values)
-    data_train_corpus = map_words_and_add_padding(vocabulary, data_train['Tweet text'].values)
-    data_test_corpus = map_words_and_add_padding(vocabulary, data_test['Tweet text'].values)
+    data_train_corpus = pre.map_words_and_add_padding(vocabulary, 
+        data_train['Tweet text'].values,maxlen)
+    data_test_corpus = pre.map_words_and_add_padding(vocabulary, 
+        data_test['Tweet text'].values, maxlen)
     model = build_model(data_train_corpus, data_train_labels)
-    evaluate(model,data_test_corpus,data_test_labels)
-
-
-
+    evaluate(model, data_test_corpus, data_test_labels)
