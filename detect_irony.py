@@ -17,15 +17,95 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk import tokenize
 
 #parameters
-
 max_features = 5000
-maxlen = 200
+maxlen = 100
 batch_size = 32
 embedding_dims = 50
 filters = 250
 kernel_size = 3
 hidden_dims = 250
 epochs = 10
+
+def add_sentiment_analysis_and_add_padding(corpus, data):
+    m1 = []
+    m2 = []
+    m3 = []
+    m4 = []
+    print("Adding features...")
+    for i in range(len(corpus)):
+        row = []
+        level, neg, pos, neu, compound = sentiment_analyse(corpus[i])
+        lvl1, lvl2 = sentiment_analyse_2(corpus[i])
+        m1.append(lvl1)
+        m2.append(lvl2)
+        m3.append(level)
+        m4.append(compound)
+
+    print("Finished adding features")
+    print("Discretizing...")
+
+    m1 = ps.cut(m1,6,labels=False)
+    m2 = ps.cut(m2,6,labels=False)
+    m3 = ps.cut(m3,6,labels=False)
+    m4 = ps.cut(m4,6,labels=False)
+
+    print("Finished discretizing features")
+    
+    for i in range(len(data)):
+        data[i].append(m1[i]/10)
+        data[i].append(m2[i]/10)
+        data[i].append(m3[i]/10)
+        data[i].append(m4[i]/10)
+
+    return sequence.pad_sequences(data, maxlen=maxlen)    
+
+    
+
+def sentiment_analyse(tweet):
+    sid = SentimentIntensityAnalyzer()
+    sentiment_scores = sid.polarity_scores(tweet)
+    neg = sentiment_scores['neg']
+    pos = sentiment_scores['pos']
+    neu = sentiment_scores['neu']
+    compound = sentiment_scores['compound']
+    level = neg*pos    
+    #print(sentiment_scores)
+    #print(level)
+    return level, neg, pos, neu, compound
+
+
+def sentiment_analyse_2(tweet):
+    sid = SentimentIntensityAnalyzer()
+
+    split = tweet.replace('_',' ').replace('#',' ').replace(':',' ').split(" ")
+    half1 = ""
+    half2 = ""
+    iterator = 0
+    for word in split:
+        if iterator < len(split)/2:
+            half1 += word + " "
+        else:
+            half2 += word + " "
+        iterator += 1
+
+    sentiment_scores_1 = sid.polarity_scores(half1)
+    sentiment_scores_2 = sid.polarity_scores(half2)
+
+    neg1 = sentiment_scores_1['neg']
+    pos1 = sentiment_scores_1['pos']
+    neu1 = sentiment_scores_1['neu']
+    compound1 = sentiment_scores_1['compound']
+
+    neg2 = sentiment_scores_1['neg']
+    pos2 = sentiment_scores_1['pos']
+    neu2 = sentiment_scores_1['neu']
+    compound2 = sentiment_scores_1['compound']
+    
+    lvl1 = (pos1+neg1)*(pos2+neg2)
+    lvl2 = max(pos1*neg2,pos2*neg1)
+
+    return lvl1, lvl2
+
 
 def load_and_split_data(filename):
     data = ps.read_csv(filename, sep="\t")
@@ -35,7 +115,7 @@ def index_corpus_words(data_train):
     tok = TweetTokenizer()
     frequency = {}
     vocabulary = {}
-    word_index = 1
+    word_index = 2
     for row in data_train['Tweet text'].values:
         for word in tok.tokenize(row.lower()):
             if word not in frequency.keys():
@@ -50,7 +130,7 @@ def index_corpus_words(data_train):
     vocabulary["<unknown>"] = word_index
     return vocabulary
 
-def map_words_and_add_padding(vocabulary, corpus):
+def map_words(vocabulary, corpus):
     new_corpus = []
     for row in corpus:
         new_row = []
@@ -59,8 +139,9 @@ def map_words_and_add_padding(vocabulary, corpus):
                 new_row.append(vocabulary[word])
             else:
                 new_row.append(vocabulary["<unknown>"])
+
         new_corpus.append(new_row)
-    return sequence.pad_sequences(new_corpus, maxlen=maxlen)
+    return new_corpus 
 
 def build_model(data_train_corpus,data_train_labels):
     model = Sequential()
@@ -110,14 +191,16 @@ def evaluate(model,data_test_corpus,data_test_labels):
     print(nbr_test_passed/nbr_tests)
 
 if __name__ == "__main__":
-    data_train, data_test = load_and_split_data('data')
+    data_train, data_test = load_and_split_data('./SemEval2018-T3-train-taskA.txt')
     vocabulary = index_corpus_words(data_train)
     data_train_labels = np.array(data_train['Label'].values)
     data_test_labels = np.array(data_test['Label'].values)
-    data_train_corpus = map_words_and_add_padding(vocabulary, data_train['Tweet text'].values)
-    data_test_corpus = map_words_and_add_padding(vocabulary, data_test['Tweet text'].values)
+    
+    data_train_corpus = map_words(vocabulary, data_train['Tweet text'].values)
+    data_train_corpus = add_sentiment_analysis_and_add_padding(data_train['Tweet text'].values, data_train_corpus)
+
+    data_test_corpus = map_words(vocabulary, data_test['Tweet text'].values)
+    data_test_corpus = add_sentiment_analysis_and_add_padding(data_test['Tweet text'].values, data_test_corpus)
+
     model = build_model(data_train_corpus, data_train_labels)
     evaluate(model,data_test_corpus,data_test_labels)
-
-
-
