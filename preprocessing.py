@@ -87,14 +87,14 @@ def sentiment_analyse_2(tweet):
     return lvl1, lvl2
 
 def index_corpus_words(data):
-    tok = TweetTokenizer()
-    #lem = WordNetLemmatizer()
+    tok = TweetTokenizer() # improves results
+    lem = WordNetLemmatizer() # slightly / no change
     frequency = {}
     vocabulary = {}
     word_index = 2
     for row in data['Tweet text'].values:
-        for word in tok.tokenize(row.lower()):
-            #word = lem.lemmatize(word)
+        for word in tok.tokenize(row.lower()): # TODO: move
+            word = lem.lemmatize(word)  # TODO: move
             if word not in frequency.keys():
                 frequency[word]=1
             else:
@@ -128,7 +128,6 @@ def normalize_corpus(corpus):
     return(corpus)
 
 def normalize(line):
-
     positive_emoji = list(filter(None,open(
         'positive_emoji', 'r').read().split('\n')))
     negative_emoji = list(filter(None,open(
