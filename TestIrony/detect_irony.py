@@ -17,6 +17,8 @@ from nltk.tokenize import TweetTokenizer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk import tokenize
 import codecs
+import tensorflow as tf
+
 
 from sklearn.model_selection import StratifiedKFold
 
@@ -71,9 +73,11 @@ def build_model(data_train_corpus, data_train_labels):
     model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
-    model.fit(data_train_corpus, data_train_labels,
-        batch_size=batch_size,
-        epochs=epochs)
+
+    with tf.device('/gpu:0'):
+        model.fit(data_train_corpus, data_train_labels,
+            batch_size=batch_size,
+            epochs=epochs)
     return model
 
 def crossvalidation(data_corpus, data_labels):
@@ -134,7 +138,7 @@ if __name__ == "__main__":
     #data_corpus = pre.add_sentiment_analysis(pre.normalize_corpus(data['Tweet text'].values), data_corpus)
 
     data_corpus = pre.map_words(vocabulary, data['Tweet text'].values)
-    data_corpus = pre.add_sentiment_analysis(data['Tweet text'].values, data_corpus)
+    #data_corpus = pre.add_sentiment_analysis(data['Tweet text'].values, data_corpus)
     
     # Padding
     data_corpus = sequence.pad_sequences(data_corpus, maxlen=maxlen)
