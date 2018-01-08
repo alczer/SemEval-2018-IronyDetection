@@ -17,12 +17,12 @@ def add_sentiment_analysis(corpus, data):
     print("Adding features...")
     for i in range(len(corpus)):
         row = []
-        level, neg, pos, neu, compound = sentiment_analyse(corpus[i])
+        #level, neg, pos, neu, compound = sentiment_analyse(corpus[i])
         lvl1, lvl2 = sentiment_analyse_2(corpus[i])
         m1.append(lvl1)
         m2.append(lvl2)
-        m3.append(level)
-        m4.append(abs(compound))
+        #m3.append(level)
+        #m4.append(abs(compound))
 
     print("Finished adding features")
     print("Discretizing...")
@@ -30,15 +30,15 @@ def add_sentiment_analysis(corpus, data):
     m1 = ps.cut(m1,6,labels=False)
     m2 = ps.cut(m2,6,labels=False)
     #m3 = ps.cut(m3,6,labels=False)
-    m4 = ps.cut(m4,6,labels=False)
+    #m4 = ps.cut(m4,6,labels=False)
 
     print("Finished discretizing features")
     
     for i in range(len(data)):
-        data[i].append(m1[i]/10)
-        data[i].append(m2[i]/10)
-        #data[i].append(m3[i]/10)
-        data[i].append(m4[i]/10)
+        data[i].append(m1[i])
+        data[i].append(m2[i])
+        #data[i].append(m3[i])
+        #data[i].append(m4[i])
 
     return data        
 

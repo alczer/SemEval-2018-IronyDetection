@@ -23,6 +23,9 @@
   <ItemGroup>
     <Compile Include="detect_irony.py" />
     <Compile Include="preprocessing.py" />
+    <Compile Include="test.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Content Include="negative_emoji" />
