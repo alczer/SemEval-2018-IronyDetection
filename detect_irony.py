@@ -115,12 +115,26 @@ def crossvalidation(data_corpus, data_labels):
     print("Accuracy:")
     print(nbr_test_passed/nbr_tests)
 
-    PREDICTIONSFILE = open("results1.txt", "w")
+    PREDICTIONSFILE = open("results.txt", "w")
     for p in cvresults:
         if p < 0.5:
-            PREDICTIONSFILE.write("{}\n".format(0))
+            PREDICTIONSFILE.write("0\n")
         else:
-            PREDICTIONSFILE.write("{}\n".format(1))
+            PREDICTIONSFILE.write("1\n")
+    PREDICTIONSFILE.close()
+
+    return cvresults
+
+def write_results_file(results, data, measures):
+    PREDICTIONSFILE = open("results1.txt", "w", encoding = 'utf-8')
+
+    for result, label, text, M1, M2 in zip(results, data['Label'].values, data['Tweet text'].values, measures["M1"], measures["M2"]):
+        if result < 0.5:
+            output = "label:" + str(label) + "/0 prob:" + str(result) + " M1:" + str(M1) + " M2:" + str(M2) + " " + pre.normalize(text) + "\n"
+            PREDICTIONSFILE.write(output)
+        else:
+            output = "label:" + str(label) + "/1 prob:" + str(result) + " M1:" + str(M1) + " M2:" + str(M2) + " " + pre.normalize(text) + "\n"
+            PREDICTIONSFILE.write(output)
     PREDICTIONSFILE.close()
 
 if __name__ == "__main__":
@@ -133,11 +147,12 @@ if __name__ == "__main__":
     #data_corpus = pre.map_words(vocabulary, pre.normalize_corpus(['Tweet text'].values))
     #data_corpus = pre.add_sentiment_analysis(pre.normalize_corpus(data['Tweet text'].values), data_corpus)
 
-    data_corpus = pre.map_words(vocabulary, data['Tweet text'].values)
-    data_corpus = pre.add_sentiment_analysis(data['Tweet text'].values, data_corpus)
+    data_corpus = pre.map_words(vocabulary, pre.normalize_corpus(data['Tweet text'].values))
+    data_corpus, measures = pre.add_sentiment_analysis(data['Tweet text'].values, data_corpus)
     
     # Padding
     data_corpus = sequence.pad_sequences(data_corpus, maxlen=maxlen)
    
-    crossvalidation(data_corpus, data_labels)
+    results = crossvalidation(data_corpus, data_labels)
+    write_results_file(results, data, measures)
 
